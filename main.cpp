@@ -2,8 +2,32 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <random>
+
+#define MAX_THREADS 7
 
 using namespace std;
+
+template<typename NUM>
+vector<vector<int>> random_filling_square_vector(NUM type, int size)
+{
+    srand(time(0));
+    vector<vector<NUM>> vector_;
+    vector<NUM> row;
+
+    for (int i = 0; i < size; ++i)
+    {
+        for (int j = 0; j < size; ++j)
+        {
+            row.push_back(rand());
+        }
+        vector_.push_back(row);
+        row.clear();
+    }
+
+    return vector_;
+
+}
 
 template<typename NUM>
 vector<vector<int>> filling_square_vector(NUM type)
@@ -73,14 +97,10 @@ template<typename NUM>
 vector<vector<double>> Matrix_multiplication(const vector<vector<NUM>>& a_, const vector<vector<NUM>>& b_)
 {
     vector<vector<double>> result;
-    vector<double> row;
 
     for (int i = 0; i < a_.size(); ++i)
     {
-        row = Row_multiplication(a_[i], b_);
-        result.push_back(row);
-        row.clear();
-
+        result.push_back(Row_multiplication(a_[i], b_));
     }
 
     return result;
@@ -90,62 +110,63 @@ vector<vector<double>> Matrix_multiplication(const vector<vector<NUM>>& a_, cons
 template<typename NUM>
 vector<vector<double>> Threads_matrix_multiplication(const vector<vector<NUM>>& a_, const vector<vector<NUM>>& b_)
 {
+    if (a_.size() != b_.size())
+        throw "Wrong sizes inputs";
 
+    vector<thread> ths;
     vector<vector<double>> result;
-    vector<double> row1;
-    vector<double> row2;
+    vector<vector<vector<double>>> temp_result(MAX_THREADS);
 
-    if (b_.size % 2 = 1)
+    ths.reserve(MAX_THREADS);
+
+    int number_sep_process = a_.size() % MAX_THREADS;
+    int number_common_process = a_.size() - number_sep_process;
+    int number_processes_on_one_thread = number_common_process / MAX_THREADS;
+
+    for (int j = 0; j < MAX_THREADS; ++j)
     {
-        for (int i = 0; i < a_.size()-1; ++i)
-        {
-            thread th1([&row1, a_, b_, i] {row1 = Row_multiplication(a_[i], b_); });
-            thread th2([&row2, a_, b_, i] {row2 = Row_multiplication(a_[i], b_); });
-            th1.join();
-            th2.join();
-            result.push_back(row1);
-            result.push_back(row2);
-            row1.clear();
-            row2.clear();
-
-        }
-        row1 = Row_multiplication(a_[i], b_);
-        result.push_back(row1);
+        ths.emplace_back(thread([&number_processes_on_one_thread, &a_, &b_, &temp_result, j]()
+            {
+                for (int i = number_processes_on_one_thread * j; i < number_processes_on_one_thread * (j + 1); ++i)
+                {
+                    temp_result[j].emplace_back(Row_multiplication(a_[i], b_));
+                };
+            }));
     }
-    else
-    {
-        for (int i = 0; i < a_.size(); ++i)
-        {
-            thread th1([&row1, a_, b_, i] {row1 = Row_multiplication(a_[i], b_); });
-            thread th2([&row2, a_, b_, i] {row2 = Row_multiplication(a_[i], b_); });
-            th1.join();
-            th2.join();
-            result.push_back(row1);
-            result.push_back(row2);
-            row1.clear();
-            row2.clear();
 
+    for (int i = 0; i < MAX_THREADS; ++i)
+    {
+        ths[i].join();
+        for (auto j : temp_result[i])
+        {
+            result.emplace_back(j);
         }
+    }
+    
+    for (int i = number_processes_on_one_thread * MAX_THREADS; i < a_.size(); ++i)
+    {
+        result.emplace_back(Row_multiplication(a_[i], b_));
     }
 
     return result;
-
+    
 }
 
 int main()
+
 {
-    vector<vector<int>> a /*= { {1, 2, 3},
-        {4, 5, 6},
-        {1, 2, 3} }*/;
-    vector<vector<int>> b/* = { {4, 5, 6},
-        {6, 5, 4},
-        {4, 5, 6} }*/;
+    vector<vector<int>> a;
+    vector<vector<int>> b;
 
-    a = filling_square_vector((int)0);
-    output_square_vector(a);
+    int size = 1000;
+    a = random_filling_square_vector((int)0, size);
+    //output_square_vector(a);
 
-    b = filling_square_vector((int)0);
-    output_square_vector(b);
+    b = random_filling_square_vector((int)0, size);
+    //output_square_vector(b);
+
+    cout << "Max_hardware_threads: " << thread::hardware_concurrency() << endl;
+    cout << "Allowed_threads: " << MAX_THREADS << endl;
 
     auto start = chrono::steady_clock::now();
 
@@ -156,7 +177,7 @@ int main()
 
     cout << "Complete for " << elapsed_ns << endl;
 
-    output_square_vector(c);
+    //output_square_vector(c);
 
     auto start_th = chrono::steady_clock::now();
 
@@ -167,7 +188,7 @@ int main()
 
     cout << "Complete for " << elapsed_ns_th << endl;
 
-    output_square_vector(c_th);
+    //output_square_vector(c_th);
     
 }
 
