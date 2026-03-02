@@ -155,6 +155,30 @@ vector<vector<double>> Threads_matrix_multiplication(const vector<vector<NUM>>& 
     
 }
 
+template<typename NUM>
+bool Check_matrix(vector<vector<NUM>>& a_, vector<vector<NUM>>& b_)
+{
+    if (a_.size() != b_.size())
+        return false;
+
+    for (int i = 0; i < a_.size(); ++i)
+    {
+        if (a_[i].size() != b_[i].size())
+            return false;
+    }
+
+    for (int i = 0; i < a_.size(); ++i)
+    {
+        for (int j = 0; j < a_.size(); ++j)
+        {
+            if (a_[i][j] != b_[i][j])
+                return false;
+        }
+    }
+
+    return true;
+}
+
 int main()
 
 {
@@ -177,8 +201,9 @@ int main()
 
     auto finish = chrono::steady_clock::now();
     auto elapsed_ns = chrono::duration_cast<chrono::nanoseconds>(finish - start);
+    auto elapsed_sec = chrono::duration_cast<chrono::seconds>(finish - start);
 
-    cout << "Complete for " << elapsed_ns << endl;
+    cout << "Complete for " << elapsed_ns << " " << elapsed_sec << endl;
 
     //output_square_vector(c);
 
@@ -188,9 +213,11 @@ int main()
 
     auto finish_th = chrono::steady_clock::now();
     auto elapsed_ns_th = chrono::duration_cast<chrono::nanoseconds>(finish_th - start_th);
+    auto elapsed_sec_th = chrono::duration_cast<chrono::seconds>(finish_th - start_th);
 
-    cout << "Complete for " << elapsed_ns_th << endl;
+    cout << "Complete for " << elapsed_ns_th << " " << elapsed_sec_th << endl;
 
+    cout << Check_matrix(c, c_th);
     //output_square_vector(c_th);
     
 }
