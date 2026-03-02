@@ -4,7 +4,7 @@
 #include <chrono>
 #include <random>
 
-#define MAX_THREADS 7
+#define MAX_THREADS 8
 
 using namespace std;
 
@@ -114,10 +114,15 @@ vector<vector<double>> Threads_matrix_multiplication(const vector<vector<NUM>>& 
         throw "Wrong sizes inputs";
 
     vector<thread> ths;
-    vector<vector<double>> result;
-    vector<vector<vector<double>>> temp_result(MAX_THREADS);
-
     ths.reserve(MAX_THREADS);
+
+    vector<vector<double>> result;
+    result.resize(a_.size());
+    for (int i = 0; i < a_.size(); ++i)
+    {
+        result[i].resize(a_.size());
+    }
+
 
     int number_sep_process = a_.size() % MAX_THREADS;
     int number_common_process = a_.size() - number_sep_process;
@@ -125,27 +130,25 @@ vector<vector<double>> Threads_matrix_multiplication(const vector<vector<NUM>>& 
 
     for (int j = 0; j < MAX_THREADS; ++j)
     {
-        ths.emplace_back(thread([&number_processes_on_one_thread, &a_, &b_, &temp_result, j]()
+        int start = j * number_processes_on_one_thread;
+        int end = (j+1) * number_processes_on_one_thread;
+        ths.emplace_back(thread([&result, &a_, &b_, start, end]()
             {
-                for (int i = number_processes_on_one_thread * j; i < number_processes_on_one_thread * (j + 1); ++i)
+                for (int i = start; i < end; ++i)
                 {
-                    temp_result[j].emplace_back(Row_multiplication(a_[i], b_));
-                };
+                    result[i] = Row_multiplication(a_[i], b_);
+                }
             }));
     }
 
     for (int i = 0; i < MAX_THREADS; ++i)
     {
         ths[i].join();
-        for (auto j : temp_result[i])
-        {
-            result.emplace_back(j);
-        }
     }
-    
-    for (int i = number_processes_on_one_thread * MAX_THREADS; i < a_.size(); ++i)
+
+    for (int i = number_common_process; i < a_.size(); ++i)
     {
-        result.emplace_back(Row_multiplication(a_[i], b_));
+        result[i] = Row_multiplication(a_[i], b_);
     }
 
     return result;
